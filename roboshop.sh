@@ -7,27 +7,31 @@ for instance in "$@"
 do
     echo "Launching instance: $instance"
 
-    instance_id=$(aws ec2 run-instances \
+    INSTANCE_ID=$(aws ec2 run-instances \
         --image-id "$AMI_ID" \
         --instance-type t3.micro \
         --security-group-ids "$SG_ID" \
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$instance}]" \
         --query 'Reservations[0].Instances[0].InstanceId' \
-        --output text)
+        --output text
+    )
 
-    echo "Instance ID: $instance_id"
+    echo "Instance ID: $INSTANCE_ID"
 
-    if [[ "$instance" == "frontend" ]]; then
+    if [ "$instance" == "frontend" ]; then
         IP=$(aws ec2 describe-instances \
-            --instance-ids "$instance_id" \
+            --instance-ids "$INSTANCE_ID" \
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
-            --output text)
+            --output text
+        )
         echo "Public IP of $instance: $IP"
     else
         IP=$(aws ec2 describe-instances \
-            --instance-ids "$instance_id" \
+            --instance-ids "$INSTANCE_ID" \
             --query 'Reservations[0].Instances[0].PrivateIpAddress' \
-            --output text)
+            --output text
+        )
         echo "Private IP of $instance: $IP"
     fi
+
 done
