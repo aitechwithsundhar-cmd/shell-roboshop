@@ -2,9 +2,6 @@
 
 USERID=$(id -u)
 
-SCRIPT_DIR=$(dirname "$(realpath "$0")")
-
-
 LOGS_FOLDER="/var/log/roboshop"
 SCRIPT_NAME=$(basename "$0")
 LOGS_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
@@ -27,22 +24,29 @@ VALIDATE() {
   else
     echo -e "$2 ... ${G}SUCCESS${N}"
   fi
-}x
- 
- dnf module disable nodejs -y &>>$LOGS_FILE
- VALIDATE $? "Disabling nodeJS Defulte version "
+}
 
- dnf module enable nodejs:20 -y &>>$LOGS_FILE
- VALIDATE $? "Enable NodeJS:20 version "
+dnf module disable nodejs -y &>>$LOGS_FILE
+VALIDATE $? "Disabling NodeJS default version"
 
- dnf install nodejs -y &>>$LOGS_FILE
- VALIDATE $? " installing NodeJS"
+dnf module enable nodejs:20 -y &>>$LOGS_FILE
+VALIDATE $? "Enabling NodeJS 20"
 
-useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOGS_FILE
-VALIDATE $? "Creating system user"
+dnf install nodejs -y &>>$LOGS_FILE
+VALIDATE $? "Installing NodeJS"
 
-mkdir -p /app 
+useradd --system --home /app --shell /sbin/nologin roboshop &>>$LOGS_FILE || true
+VALIDATE $? "Creating roboshop user"
+
+mkdir -p /app
 VALIDATE $? "Creating app directory"
 
 curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOGS_FILE
-VALIDATE $? "Downloading catalouge code"
+VALIDATE $? "Downloading catalogue code"
+
+cd /app
+unzip -o /tmp/catalogue.zip &>>$LOGS_FILE
+VALIDATE $? "Extracting catalogue code"
+
+npm install &>>$LOGS_FILE
+VALIDATE $? "Installing NodeJS dependencies"
