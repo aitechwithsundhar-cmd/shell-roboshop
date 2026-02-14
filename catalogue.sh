@@ -27,7 +27,7 @@ VALIDATE() {
   else
     echo -e "$2 ... ${G}SUCCESS${N}"
   fi
-}
+}x
  
  dnf module disable nodejs -y &>>$LOGS_FILE
  VALIDATE $? "Disabling nodeJS Defulte version "
