@@ -1,16 +1,14 @@
-#!/bin/bash 
+#!/bin/bash
 
-# 1) check root user or not
-# 2) if root user then continue, otherwise given an error 
-# 3) adding colors 
-# 4) Check logs 
-# 5) Validate function
+############################################
+# MongoDB Installation Script (Automated)
+############################################
 
 USERID=$(id -u)
 
 LOGS_FOLDER="/var/log/roboshop"
 SCRIPT_NAME=$(basename "$0")
-LOGS_FILE="$LOGS_FOLDER/$0.log"
+LOGS_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
 
 # Color codes
 R="\e[31m"
@@ -20,12 +18,12 @@ N="\e[0m"
 
 # Root check
 if [ $USERID -ne 0 ]; then
-    echo -e "${R}Please run this script with root user access${N}" | tee -q $LOGS_FILE
+    echo -e "${R}Please run this script as root${N}"
     exit 1
 fi
 
 # Create logs folder
-mkdir -p "$LOGS_FOLDER"
+mkdir -p $LOGS_FOLDER
 
 # Validation function
 VALIDATE() {
@@ -37,31 +35,41 @@ VALIDATE() {
     fi
 }
 
-cp mongo.repo /etc/yum.repos.d/mongo.repo
-# shell-roboshop/mongo.repo
+############################################
+# Copy Mongo Repo
+
+############################################
+cp mongo.repo /etc/yum.repos.d/mongo.repo &>>$LOGS_FILE
 VALIDATE $? "Copying Mongo Repo"
 
+############################################
+# Install MongoDB
+############################################
 dnf install mongodb-org -y &>>$LOGS_FILE
-VALIDATE $? "installing mongoDB server"
+VALIDATE $? "Installing MongoDB Server"
+
+############################################
+# Enable & Start MongoDB
+############################################
+systemctl daemon-reload &>>$LOGS_FILE
 
 systemctl enable mongod &>>$LOGS_FILE
-VALIDATE $? "enable mongoDB"
+VALIDATE $? "Enabling MongoDB"
 
-systemctl start mongod 
-VALIDATE $? "start mondoDB"
+systemctl start mongod &>>$LOGS_FILE
+VALIDATE $? "Starting MongoDB"
 
-# we can't edit directly using VIM as robot(automate) so we need to use
-# sed editor -> streamline editor 
-# insert text after line 1. to delete use 'd' example :- sed '2d' user 
-# sed 'la hi ' users -> add the text after line 1, temporary edit only on screen. for premenent usr -i option 
-# sed '1i hello'users -> before line 1
-# sed '/sbin/d' -> deletes all the lines with text math sbin/d 
-# sed '2d' ->delete 2nd line 
-# sed '2s/sbin/SBIN/g'users -> replace sbin with SBIN in 2nd line 
-# sed 's/sbin/SBIN/g' -> all lines all occurences 
+############################################
+# Allow Remote Connections (Automation way)
+############################################
+# Replace bindIp from 127.0.0.1 → 0.0.0.0
+sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
+VALIDATE $? "Allowing remote connections"
 
-sed -i 's/127.0.0.1/0.0.0.0/g' /etc/momgod.conf
-VALIDATE $? "allowing remote connections"
+############################################
+# Restart MongoDB
+############################################
+systemctl restart mongod &>>$LOGS_FILE
+VALIDATE $? "Restarting MongoDB"
 
-systemctl restart mongod
-VALIDATE $? "restarted mongoDB"
+echo -e "${G}MongoDB setup completed successfully 🚀${N}"
