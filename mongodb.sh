@@ -1,51 +1,46 @@
 #!/bin/bash
 
-LOG=/tmp/mongodb.log
-rm -f $LOG
+USERID=$(id -u)
 
-STATUS_CHECK() {
-  if [ $? -eq 0 ]; then
-    echo -e "\e[32mSUCCESS\e[0m"
-  else
-    echo -e "\e[31mFAILURE\e[0m"
-    echo "Check log file: $LOG"
+LOGS_FOLDER="/var/log/roboshop"
+SCRIPT_NAME=$(basename "$0")
+LOGS_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
+
+R="\e[31m"
+G="\e[32m"
+N="\e[0m"
+
+if [ $USERID -ne 0 ]; then
+  echo -e "${R}Please run as root${N}"
+  exit 1
+fi
+
+mkdir -p $LOGS_FOLDER
+
+VALIDATE() {
+  if [ $1 -ne 0 ]; then
+    echo -e "$2 ... ${R}FAILURE${N}"
     exit 1
+  else
+    echo -e "$2 ... ${G}SUCCESS${N}"
   fi
 }
 
-echo -n "Disabling MongoDB default module .... "
-dnf module disable mongodb -y &>>$LOG
-STATUS_CHECK
+cp mongo.repo /etc/yum.repos.d/mongo.repo
+VALIDATE $? "Copying Mongo Repo"
 
-echo -n "Copying MongoDB 7.0 Repo .... "
-cat <<EOF >/etc/yum.repos.d/mongodb-org-7.0.repo
-[mongodb-org-7.0]
-name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/7.0/x86_64/
-gpgcheck=1
-enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
-EOF
-STATUS_CHECK
+dnf clean all &>>$LOGS_FILE
+dnf install mongodb-org -y &>>$LOGS_FILE
+VALIDATE $? "Installing MongoDB Server"
 
-echo -n "Installing MongoDB Server .... "
-dnf install mongodb-org -y &>>$LOG
-STATUS_CHECK
+systemctl enable mongod &>>$LOGS_FILE
+VALIDATE $? "Enabling MongoDB"
 
-echo -n "Enabling MongoDB Service .... "
-systemctl enable mongod &>>$LOG
-STATUS_CHECK
+systemctl start mongod &>>$LOGS_FILE
+VALIDATE $? "Starting MongoDB"
 
-echo -n "Starting MongoDB Service .... "
-systemctl start mongod &>>$LOG
-STATUS_CHECK
+sed -i 's/127.0.0.1/0.0.0.0/' /etc/mongod.conf
+VALIDATE $? "Allow remote access"
 
-echo -n "Updating MongoDB Bind IP .... "
-sed -i 's/127.0.0.1/0.0.0.0/' /etc/mongod.conf &>>$LOG
-STATUS_CHECK
-
-echo -n "Restarting MongoDB Service .... "
-systemctl restart mongod &>>$LOG
-STATUS_CHECK
-
-echo -e "\n🎉 MongoDB 7.0 Installation Completed Successfully 🎉"
+systemctl restart mongod &>>$LOGS_FILE
+VALIDATE $? "Restart MongoDB"
