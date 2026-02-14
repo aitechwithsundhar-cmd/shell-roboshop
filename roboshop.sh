@@ -89,7 +89,7 @@ do
                 \"ResourceRecordSet\": {
                     \"Name\": \"$RECORD_NAME\",
                     \"Type\": \"A\",
-                    \"TTL\": 1,
+                    \"TTL\": 2,
                     \"ResourceRecords\": [{\"Value\": \"$IP\"}]
                 }
             }]
