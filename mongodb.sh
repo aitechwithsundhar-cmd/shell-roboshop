@@ -2,6 +2,9 @@
 
 USERID=$(id -u)
 
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+
+
 LOGS_FOLDER="/var/log/roboshop"
 SCRIPT_NAME=$(basename "$0")
 LOGS_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
@@ -26,7 +29,7 @@ VALIDATE() {
   fi
 }
 
-cp mongo.repo /etc/yum.repos.d/mongo.repo
+cp "$SCRIPT_DIR/mongo.repo" /etc/yum.repos.d/mongo.repo
 VALIDATE $? "Copying Mongo Repo"
 
 dnf clean all &>>$LOGS_FILE
